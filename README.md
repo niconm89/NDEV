@@ -35,6 +35,7 @@ conda install -c anaconda numpy pandas
 #the above steps can be done in one simple command, but I like to split steps as more as possible
 ```
 
+------
 ## Usage & Examples
 * Program help
 
@@ -49,10 +50,12 @@ conda install -c anaconda numpy pandas
 `python NDEV.py -v`
 
 
-
+------
 ## Outputs
 
+Acá van los ejemplos de salidas
 
+------
 ## Contact
 
 Nicolás Nahuel Moreyra, PhD
