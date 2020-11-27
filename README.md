@@ -1,5 +1,4 @@
 # NDEV v01: Nucleotide Diversity Estimation and Visualization
-======
 This program calculate the Genetic Diversity of sequences present in a nucleotide aligment.
 The file must be in FASTA format. If you need to convert any of your alignments to FASTA format, these [python scripts](https://github.com/niconm89/scripts_bioinformatics) may help you.
 
@@ -17,6 +16,7 @@ NDEV is written in python3 and requiere the following python modules/libraries:
 ------
 ## Install
 To install the required modules, you can use pip3 and install all in one command:
+
 `pip3 install os argparse math random pandas numpy matplotlib`
 
 However, I recommend you to create a [conda environment](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html).
