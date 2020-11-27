@@ -34,25 +34,26 @@ conda install -c conda-forge argparse matplotlib
 conda install -c anaconda numpy pandas
 #the above steps can be done in one simple command, but I like to split steps as more as possible
 ```
-------
+
 ## Usage & Examples
 * Program help
+
 `python NDEV.py -h`
 
 * Program version
+
 `python NDEV.py -v`
 
 * Program 
+
 `python NDEV.py -v`
 
 
 
-
-------
 ## Outputs
 
 
 ## Contact
-------
-Nicolás Nahuel Moreyra
+
+Nicolás Nahuel Moreyra, PhD
 * :e-mail: niconm89@gmail.com
