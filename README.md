@@ -11,7 +11,7 @@ NDEV is written in python3 and requiere the following python modules/libraries:
 * random
 * pandas
 * numpy
-* matplotlib
+* matplotlib (in the next version ggplot2 will be used to generate plots)
 
 ------
 ## Install
@@ -45,10 +45,21 @@ conda install -c anaconda numpy pandas
 
 `python NDEV.py -v`
 
-* Program 
+* Loading an alignment to estimate PI values and generate a line plot.
 
-`python NDEV.py -v`
+`python GenDivEst.py --mode full --infile data_example/ingroups.fasta --prefix test1_full --wsize 500 --woverlap 100 --title 'This tis the title' --title_fontsize 32 --labels cluster_buzzatii --xlabel 'Windows in alignment' --xlimit 0 39 --ylabel 'Nucleotide Diversity (PI)' --ylimit 0 0.02 --axis_fontsize 28 28 --ticks_size 22 22 --legend 'upper right' --legend_fontsize 26 --colors red --linestyles solid --linewidth 2.5 --dpi 300`
 
+* Loading an alignment to estimate PI values and generate a line plot and a boxplot of PI values between all pairwise comparisons.
+
+`python GenDivEst.py --mode full --infile data_example/ingroups.fasta --prefix test_ingroups --wsize 500 --woverlap 100 --title 'This tis the title' --title_fontsize 32 --labels cluster_buzzatii --xlabel 'Windows in alignment' --xlimit 0 39 --ylabel 'Nucleotide Diversity (PI)' --ylimit 0 0.02 --axis_fontsize 28 28 --ticks_size 18 18 --legend 'upper right' --legend_fontsize 26 --colors red --linestyles solid --linewidth 2.5 --dpi 300 --pairwise_plot --rotation 45 0`
+
+* Loading an alignment to estimate PI values without generating any plot
+
+`python GenDivEst.py --mode full --infile data_example/ingroups.fasta --prefix test2_full-noplots --wsize 500 --woverlap 100 --noplot`
+
+* Using plot mode with two files with PI values
+
+`python GenDivEst.py --mode plot --pifile data_example/ingroups.pi_valores.txt data_example/outgroups.pi_valores.txt --prefix test3_plot --title 'This tis the title' --title_fontsize 32 --labels ingroups outgroups --xlabel 'Windows in alignment' --xlimit 0 39 --ylabel 'Nucleotide Diversity (PI)' --ylimit 0 0.02 --axis_fontsize 28 28 --ticks_size 22 22 --legend 'upper right' --legend_fontsize 26 --colors red green --linestyles solid dashed --linewidth 4.0 2.5 --dpi 300`
 
 ------
 ## Outputs
