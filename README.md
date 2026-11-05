@@ -1,5 +1,3 @@
-Markdown · NDEV_README.md
-
 # NDEV: Nucleotide Diversity Estimation and Visualization
 
 NDEV estimates nucleotide diversity (π; Nei, 1987) along a DNA alignment using sliding windows, both for the whole set of sequences and for every pair of sequences, and plots the results. I wrote it during my PhD to analyze nucleotide diversity along mitochondrial genomes of the *Drosophila buzzatii* cluster, as part of [Moreyra et al. (2019, *PLoS ONE*)](https://doi.org/10.1371/journal.pone.0220676).
