@@ -51,35 +51,44 @@ def read_aln_to_array(input_file):
     sequences = np.array([ list(seq) for seq in alignment_dict.values() ])
     return ids.copy(),sequences.copy() # para enviar las secuencias sin los IDs
 #
-def calc_pi(list_of_mutations, number_of_comparisons):
-    'Receive a numpy array with aligment mutations per positions in the aligment and return the pi value'
-    pi = list_of_mutations.sum() / number_of_comparisons / len(list_of_mutations)
-    return pi
+def calc_pi(list_of_mutations, list_of_valid_sites):
+    'Receive two numpy arrays with the mutations and the valid sites (no gaps or N) per position of a pairwise comparison, and return the proportion of different sites.'
+    nvalid = list_of_valid_sites.sum()
+    if nvalid == 0: #no sites to compare in this window
+        return None
+    return list_of_mutations.sum() / nvalid
 #
 def compare_two_sequence(seq1,seq2):
-    'Receive two numpy arrays with one sequence in each one and return a numpy array with 0 or 1 in alignment positions where the sequences are equal or not, respectively.'
+    'Receive two numpy arrays with one sequence in each one and return two numpy arrays: one with 1 in positions where the sequences are different, and other with 1 in positions where both sequences have a valid base (A, C, G or T).'
     seqlen = len(seq1)
     list_of_differences = np.zeros(seqlen)
+    list_of_valid_sites = np.zeros(seqlen)
     for i in range(0,seqlen):
-        if seq1[i] != seq2[i]:
-            list_of_differences[i] = 1
-    return list_of_differences
+        base1 = seq1[i].upper()
+        base2 = seq2[i].upper()
+        if base1 in 'ACGT' and base2 in 'ACGT': #gaps, N and ambiguous bases are excluded
+            list_of_valid_sites[i] = 1
+            if base1 != base2:
+                list_of_differences[i] = 1
+    return list_of_differences, list_of_valid_sites
 #
 def number_of_combinations(n, m):
     'Calculate the number of possible combinations or n elements grouping by m elements.'
     return factorial(n) // (factorial(m) * factorial(n - m))
 #
 def analyze_window(window_aln):
-    'Receive a window of an alignment and return the pi value.'
-    ncomparisons = number_of_combinations(len(window_aln),2)
-    #ncomparisons = comb(len(window_aln),2) #only for python3.8+
+    'Receive a window of an alignment and return the pi value (mean proportion of different sites across all pairwise comparisons).'
     number_seqs = len(window_aln)
-    wsize = len(window_aln[0])
-    mutations_window = np.zeros(wsize)
+    pi_values_pairs = []
     for i in range(number_seqs):
         for j in range(i+1,number_seqs):
-            mutations_window += compare_two_sequence(window_aln[i],window_aln[j])
-    pi = calc_pi(mutations_window,ncomparisons)
+            mutations, valid_sites = compare_two_sequence(window_aln[i],window_aln[j])
+            pi_pair = calc_pi(mutations, valid_sites)
+            if pi_pair is not None: #pairs without valid sites are not considered
+                pi_values_pairs.append(pi_pair)
+    if len(pi_values_pairs) == 0: #no valid sites in the whole window
+        return np.nan
+    pi = sum(pi_values_pairs) / len(pi_values_pairs)
     return pi
 #
 def number_of_windows(length_aln, windows_size, windows_overlap):
@@ -121,6 +130,7 @@ def generate_pairwise_alingments(ids_seqs, alignment, windows_size, windows_over
             pairwise_aln = np.array([alignment[i],alignment[j]])
             pairwise_PIvalues[count:count+numwin] = calculate_pi_per_window(pairwise_aln, windows_size, windows_overlap)
             ids.append(ids_seqs[i]+'_'+ids_seqs[j])
+            count += numwin
 
     labels = []
     windows = []
@@ -148,43 +158,37 @@ def generate_default_colors(nfiles):
         del CSS_colors['white']
     return rchoices(list(CSS_colors.values()),k=nfiles)
 #
-    '''
 def plot_pi_pairwise(data, full_path, out_prefix, plot_params):
-    
-    Receive a dataframe and return a bloxplot figure for all comparisons.
-    
-    #data = load_PIvalues_from_file(pi_file[0]) #load the file
-    #setting the figure
-
-    boxplot = ggplot(data, aes(x='Comparison', y='PI_value')) + \
-    geom_boxplot(colour="#1F3552", fill="#4271AE", alpha=0.3, outlier_shape=".", outlier_colour="steelblue") + \
-    geom_jitter() + \
+    'Receive a dataframe with pairwise PI values and a dictionary with plot parameters, and plot (save) a figure with one box per comparison.'
+    if plot_params['violin']:
+        distribution = geom_violin(alpha=plot_params['alpha'])
+    else:
+        distribution = geom_boxplot(alpha=plot_params['alpha'])
+    boxplot = ggplot(data, aes(x='Comparison', y='PI_value', fill='Comparison')) + \
+    distribution + \
     ggtitle(plot_params['title']) + \
-    xlab(plot_params['xlabel']) + ylab(plot_params['ylabel']) + \
-    scale_y_continuous(limits=plot_params['ylimit']) + \
-    theme_bw() + \
-    theme(axis_text_x = element_text(angle=plot_params['rotation'], hjust=0.5)) + \
-    theme(axis_line=element_line(size=1, colour="black")) + \
-    theme(panel_grid_major=element_line(colour="#d3d3d3")) + \
-    theme(panel_grid_minor=element_blank()) + \
-    theme(panel_border=element_blank()) + \
-    theme(panel_background=element_blank()) + \
-    theme(plot_title=element_text(size=plot_params['title_fontsize'], family="Tahoma", face="bold") + \
-    theme(text=element_text(family="Tahoma", size=11)) + \
-    #ggplot(datos, aes(x='Comparison', y='PI_value', group='Comparison',color='Comparison')) + geom_boxplot(notch=False) + geom_jitter(size=2) + theme(axis_text_x = element_text(angle=0, hjust=0.5))+theme(axis_line=element_line(size=3, colour="grey"))+theme(panel_grid_major=element_line(colour="#d3d3d3")) + theme(panel_grid_minor=element_blank())
-    #ggplot(datos, aes(x='Comparison', y='PI_value', group='Comparison',color='Comparison')) + geom_boxplot(outlier_colour="blue",notch=False) + geom_jitter(size=1.5) + theme(axis_text_x = element_text(angle=0, hjust=0.5))+theme(axis_line=element_line(size=3, colour="grey"))+theme(panel_grid_major=element_line(colour="#d3d3d3")) + theme(panel_grid_minor=element_blank())+theme(legend_direction="vertical",legend_box_spacing=0.1)
-    #ggplot(datos, aes(x='Comparison', y='PI_value', group='Comparison',color='Comparison')) + geom_boxplot(notch=False) + geom_jitter(size=1.5) + theme(axis_text_x = element_blank(), axis_ticks=element_blank()) + theme(axis_line=element_line(size=3, colour="grey"))+theme(panel_grid_major=element_line(colour="#d3d3d3")) + theme(panel_grid_minor=element_blank())+theme(legend_direction="vertical",legend_box_spacing=0.1)
-    out_figure = os.path.join(full_path, out_prefix  + '.pairwise_boxplot.png') #creating full output path
-    ggsave(filename=out_figure, plot=boxplot, device='png', dpi=plot_params['dpi'], height=plot_params['figsize'][0], width=plot_params['figsize'][1])
-    '''
+    theme(panel_grid_major=element_blank(),panel_grid_minor=element_blank()) + \
+    theme(text=element_text(family="Arial", size=plot_params['labels_fontsize'])) + \
+    theme(plot_title=element_text(size=plot_params['title_fontsize'], family="Arial", face="bold")) + \
+    theme(axis_text_x = element_text(color="black", angle=plot_params['rotation'][0], hjust=.5, vjust=1, size=plot_params['axis_fontsize'][0])) + \
+    theme(axis_text_y = element_text(color="black", angle=plot_params['rotation'][1], hjust=1, vjust=0.5, size=plot_params['axis_fontsize'][1])) + \
+    theme(axis_line_x = element_line(size=plot_params['axis_linesize'], colour=plot_params['axis_linecolor'])) + \
+    theme(axis_line_y = element_line(size=plot_params['axis_linesize'], colour=plot_params['axis_linecolor'])) + \
+    theme(legend_position='none') + \
+    xlab(plot_params['xlabel']) + ylab(plot_params['ylabel'])
+    if plot_params['jittler']: #adding points over the boxes
+        boxplot = boxplot + geom_jitter(width=0.2, size=1)
+    if plot_params['boxes_colors']: #colors passed by the user
+        boxplot = boxplot + scale_fill_manual(values=plot_params['boxes_colors'])
+    if plot_params['ylimit']:
+        boxplot = boxplot + scale_y_continuous(limits=plot_params['ylimit'])
+    #saving the figure
+    out_figure = os.path.join(full_path, out_prefix + '.pairwise_boxplot.png') #creating full output path
+    boxplot.save(filename=out_figure, dpi=plot_params['dpi'], height=plot_params['figsize'][0], width=plot_params['figsize'][1])
 #
 def plot_pi_values(data, full_path, out_prefix, plot_params):
     'Receive a list of path to files with pi values and a dictionary with plot parameters, and plot (save) a figure with all curves (one per file).'
     #curves
-    print(data)
-    print(plot_params['linewidth'], plot_params['linestyle'])
-    #, group='Comparison', , size=5 , linetype='Comparison')) + \
-    #theme(panel_background=element_rect(fill=plot_params['theme_color']),panel_border=element_rect(fill=plot_params['theme_color'])) + \
     lineplot = ggplot(data, aes(x='Num_Win', y='PI_value', group='Comparison', color='Comparison', fill='Comparison')) + \
     geom_line(size = plot_params['linewidth'], linetype=plot_params['linestyle']) + \
     ggtitle(plot_params['title']) + \
@@ -199,7 +203,7 @@ def plot_pi_values(data, full_path, out_prefix, plot_params):
     xlab(plot_params['xlabel']) + ylab(plot_params['ylabel'])
     #saving the figure
     out_figure = os.path.join(full_path, out_prefix + '.pivalues.png') #creating full output path
-    ggsave(filename=out_figure, plot=lineplot, dpi=plot_params['dpi'], height=plot_params['figsize'][0], width=plot_params['figsize'][1])
+    lineplot.save(filename=out_figure, dpi=plot_params['dpi'], height=plot_params['figsize'][0], width=plot_params['figsize'][1])
 #
 def manage_plots(plot_mode, pi_files, full_path, out_prefix, plot_params):
     'Receive a list of files and a dictionary with plot parameters and admin the reformat variables to make the plot.'
@@ -210,50 +214,23 @@ def manage_plots(plot_mode, pi_files, full_path, out_prefix, plot_params):
     columns = ['Num_Win','PI_value','Comparison']
     if plot_mode == 'boxplot':
         data = pd.read_csv(pi_files, sep='\t')
-        #ncomp = len(data['Comparison'].unique())
-        comparisons = data['Comparison'].unique()
-        numwin = len(data[data['Comparison'] == comparisons[0]])
-        #es necesario esto? pq no puede haber diferente número de ventanas?
-        if len(data) % numwin != 0:
-            print('Warning: inconsistent number of values across comparisons!')
-
-        colors = []
-        selected_comparisons = []
-        if plot_params['select_comp']:
-            selected_comparisons = plot_params['select_comp']
-        else:
-            selected_comparisons = comparisons
-
+        for col in data.columns:
+            if col not in columns:
+                raise RuntimeError('Inconsistent column names. Aborting...')
+        if plot_params['pairs']: #keep only the comparisons selected by the user
+            data = data[ data['Comparison'].isin(plot_params['pairs']) ].copy()
+            if len(data) == 0:
+                raise RuntimeError('None of the selected comparisons were found in the pairwise file. Aborting...')
         if plot_params['boxes_colors']:
-            if len(plot_params['boxes_colors']) == len(selected_comparisons):
-                colors = plot_params['boxes_colors']
-            else:
-                colors = ["#1F3552"] * len(selected_comparisons)
-        else:
-            colors = ["#1F3552"] * len(selected_comparisons)
-
-        data_selected = pd.DataFrame(columns=columns)
-        list_of_colors = pd.Series()
-        list_of_linestyle = pd.Series()
-        list_of_widths = pd.Series()
-        for i,comp in enumerate(selected_comparisons):
-            data_selected = data[ data['Compasions'] == comp ].copy()
-            nwin_comp = len(data_selected)
-            colors = pd.Series([colors[i]] * nwin_comp)
-            linestyle = pd.Series(plot_params['linestyle'] * nwin_comp)
-            linewidths = pd.Series([colors[i]] * nwin_comp)
-            list_of_colors = list_of_colors.append(colors)
-            list_of_linestyle = pd.Series(linestyle)
-            list_of_widths = pd.Series(linewidths)
-        data_selected['Color'] = list_of_colors #adding colours to dataframe
-        data_selected['Linestyle'] = list_of_linestyle #adding colours to dataframe
-        data_selected['Linewidths'] = list_of_widths #adding colours to dataframe
-
+            ncomp = len(data['Comparison'].unique())
+            if len(plot_params['boxes_colors']) != ncomp:
+                print('Warning: the number of colors is different from the number of comparisons. Default colors will be used.')
+                plot_params['boxes_colors'] = None
         #plotting
-        plot_pi_pairwise(data_selected, full_path, out_prefix, plot_params)
+        plot_pi_pairwise(data, full_path, out_prefix, plot_params)
 
     else:#lineplot
-        data = pd.DataFrame(columns=columns)
+        dfs = []
         nfiles = len(pi_files)
         for i,pi_file in enumerate(pi_files):
             df = pd.read_csv(pi_file,sep='\t')
@@ -262,7 +239,8 @@ def manage_plots(plot_mode, pi_files, full_path, out_prefix, plot_params):
             for col in cols:
                 if col not in columns:
                     raise RuntimeError('Inconsistent column names. Aborting...')
-            data = data.append(df,ignore_index = True)
+            dfs.append(df)
+        data = pd.concat(dfs, ignore_index = True)
         #plotting
         plot_pi_values(data, full_path, out_prefix, plot_params)
 #
@@ -289,21 +267,22 @@ def check_usage(args):
     'This function check the correctness of arguments passed to the program. If any problem is found, the program will exit.'
     if args.mode == 'calculate': #ask if mode = calculate
         if args.pifiles: #no pifile allowed in calculate mode.
-            print("It is not allowed to supply a file with PI values in calculate mode. The file will be omitted.")
+            print("It is not allowed to supply a file with PI values in calculate mode. File will be omitted.")
         #--prefix argument is mandatory and in calculate mode --infile must be passed
         required_together = ('infile', 'pilabel')
         if not all( [ getattr(args,x) for x in required_together]):
             raise RuntimeError("Cannot supply --mode `calculate` without --infile and --pilabel")
 
-        variable_to_plot = ['pifiles','title','title_fontsize','labels','xlabel','xlimit','ylabel','ylimit','axis_fontsize','rotation','legend','legend_fontsize']
+        variable_to_plot = ['pifiles','title','labels','xlabel','xlimit','ylabel','ylimit','legend','legend_fontsize']
         if any( [ getattr(args, argument) for argument in variable_to_plot ] ): #if any argument is present in args, it will return True
-            print("Plot parameters not allowed in `calculate` mode. Aborting...")
+            print("Plot parameters are ignored in `calculate` mode.")
     else: #ask for plot mode (line or boxplot)
-        if not args.pifiles:
-            raise RuntimeError("No PI file was passed. Aborting...")
+        if args.mode == 'lineplot':
+            if not args.pifiles:
+                raise RuntimeError("No PI file was passed. Aborting...")
         if args.mode == 'boxplot':
-            if len(args.pifiles) > 1:
-                raise RuntimeError("In boxplot mode it is only possible to supply one pifile with columns. Aborting...")
+            if not args.pairwise:
+                raise RuntimeError("No pairwise PI file was passed (--pairwise). Aborting...")
 #
 def usage():
     parser = argparse.ArgumentParser(
@@ -337,7 +316,7 @@ def usage():
     parser.add_argument('--theme_color', metavar='color', type=str, required=False, default = 'lightgrey', help='Color of the theme.')
     parser.add_argument('--grid', action='store_true', required=False, default=False, help='Draw grid on theme.')
     #boxplot
-    parser.add_argument('--pairwise', metavar='pairwise PI values file', type=str, nargs=1, required=False, help='Mandatory in `boxplot mode`. Path to the file with pairwise PI values. File must be in tsv format and have the same name columns as the pairwise output of the program.')
+    parser.add_argument('--pairwise', metavar='pairwise PI values file', type=str, required=False, help='Mandatory in `boxplot mode`. Path to the file with pairwise PI values. File must be in tsv format and have the same name columns as the pairwise output of the program.')
     parser.add_argument('--select_comp', metavar=('file1', 'file2'), type=str, nargs='*', required=False, help='Select the pairwise comparisons (labels in `Comparison` column) to plot.')
     parser.add_argument('--violin', action='store_true', required=False, default=False, help='Generate a violin plot instead of a boxplot.')
     parser.add_argument('--jittler', action='store_true', required=False, default=False, help='Adding points to boxplot.')
@@ -369,7 +348,9 @@ def main():
                        'lines_colors':args.lines_colors, 'linestyle':args.linestyle, 'linewidth':args.linewidth, 
                        'dpi':args.dpi, 'rotation':args.rotation, 'pairs':args.select_comp,  'figsize':args.figsize, 
                        'axis_linecolor':args.axis_linecolor, 'axis_linesize':args.axis_linesize, 
-                       'theme_color':args.theme_color, 'labels_fontsize':args.labels_fontsize }
+                       'theme_color':args.theme_color, 'labels_fontsize':args.labels_fontsize,
+                       'violin':args.violin, 'jittler':args.jittler, 'boxes_colors':args.boxes_colors,
+                       'ylimit':args.ylimit, 'alpha':args.alpha }
         if args.mode == 'boxplot':
             pairwise_file = args.pairwise
             check_file_exists(pairwise_file) #check if file passed exists
