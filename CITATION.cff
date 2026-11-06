@@ -1,0 +1,39 @@
+cff-version: 1.2.0
+message: "If you use NDEV, please cite it as below."
+title: "NDEV: Nucleotide Diversity Estimation and Visualization"
+type: software
+authors:
+  - family-names: "Moreyra"
+    given-names: "Nicolás Nahuel"
+    email: "niconm89@gmail.com"
+    orcid: "https://orcid.org/0000-0003-0451-2399"
+repository-code: "https://github.com/niconm89/NDEV"
+license: GPL-3.0
+version: "1.0.0"
+date-released: "2026-11-06"
+keywords:
+  - nucleotide diversity
+  - population genetics
+  - mitogenomics
+references:
+  - type: article
+    title: "What does mitogenomics tell us about the evolutionary history of the Drosophila buzzatii cluster (repleta group)?"
+    authors:
+      - family-names: "Moreyra"
+        given-names: "N. N."
+      - family-names: "Mensch"
+        given-names: "J."
+      - family-names: "Hurtado"
+        given-names: "J."
+      - family-names: "Almeida"
+        given-names: "F."
+      - family-names: "Laprida"
+        given-names: "C."
+      - family-names: "Hasson"
+        given-names: "E."
+    journal: "PLoS ONE"
+    volume: 14
+    issue: 11
+    start: "e0220676"
+    year: 2019
+    doi: "10.1371/journal.pone.0220676"
